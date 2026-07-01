@@ -1,0 +1,142 @@
+#+title: autodiscover
+
+A single Go binary that replaces an nginx + PHP stack for serving email autodiscover responses. It reads a =settings.json= file and generates XML responses on the fly for multiple protocols and clients.
+
+* Supported Protocols and Clients
+
+| Protocol / Client                    | Endpoint                            | Format                 |
+|--------------------------------------+-------------------------------------+------------------------|
+| Microsoft Outlook (POX Autodiscover) | =POST /autodiscover/autodiscover.xml= | POX XML                |
+| Microsoft Exchange ActiveSync        | =POST /autodiscover/autodiscover.xml= | MobileSync XML         |
+| Thunderbird / Mozilla                | =GET /mail/config-v1.1.xml=           | =clientConfig= XML       |
+| Apple iOS / macOS                    | =GET /profile.mobileconfig=           | Property List (=.plist=) |
+| CalDAV (RFC 6764)                    | =GET /.well-known/caldav=             | HTTP redirect          |
+| CardDAV (RFC 6764)                   | =GET /.well-known/carddav=            | HTTP redirect          |
+
+* Building
+
+You'll need Go 1.23 or later.
+
+To build for the current machine just do =make build=. To build for other architectures do something like =make build-linux=.
+
+* Running
+
+#+begin_src bash
+  ./build/autodiscover-linux-amd64 -addr :8080 -config /path/to/settings.json
+#+end_src
+
+| Flag    | Default       | Description                         |
+|---------+---------------+-------------------------------------|
+| =-addr=   | =:8080=         | TCP address to listen on            |
+| =-config= | =settings.json= | Path to the JSON configuration file |
+|         |               |                                     |
+
+* Configuration (=settings.json=)
+
+See =example-settings.json= for a complete example.
+
+** Top-level structure
+
+| Field      | Type    | Required | Description                                              |
+|------------+---------+----------+----------------------------------------------------------|
+| =info=       | object  | *yes*      | General provider information                             |
+| =server=     | object  | *yes*      | IMAP and SMTP server settings                            |
+| =ttl=        | integer | no       | Time-to-live in hours for cached settings. Defaults to =1= |
+| =caldav=     | object  | no       | CalDAV server configuration                              |
+| =carddav=    | object  | no       | CardDAV server configuration                             |
+| =exchange=   | object  | no       | Microsoft Exchange Web Services URLs                     |
+| =activesync= | object  | no       | Exchange ActiveSync endpoint URL                         |
+| =vpn=        | object  | no       | VPN configuration for Apple profiles                     |
+| =mdm=        | object  | no       | Mobile Device Management enrollment URL                  |
+
+** =info=
+
+| Field  | Type   | Description                  |
+|--------+--------+------------------------------|
+| =name=   | string | Human-readable provider name |
+| =url=    | string | Support or home page URL     |
+| =domain= | string | Primary mail domain          |
+
+** =server.imap= and =server.smtp=
+
+| Field  | Type    | Description                                      |
+|--------+---------+--------------------------------------------------|
+| =host=   | string  | Server hostname or IP address                    |
+| =port=   | integer | TCP port number                                  |
+| =socket= | string  | Encryption method: ="SSL"=, ="STARTTLS"=, or ="plain"= |
+
+** =server.domain_required=
+
+| Field           | Type    | Description                                   |
+|-----------------+---------+-----------------------------------------------|
+| =domain_required= | boolean | Whether the authentication domain is required |
+
+** =caldav= and =carddav=
+
+| Field         | Type    | Description                                                                                         |
+|---------------+---------+-----------------------------------------------------------------------------------------------------|
+| =host=        | string  | DAV server hostname                                                                                 |
+| =port=          | integer | TCP port number                                                                                     |
+| =ssl=           | boolean | Whether to use HTTPS                                                                                |
+| =principal_url= | string  | User-specific principal path. Supports placeholders =%EMAILADDRESS%=, =%EMAILLOCALPART%=, =%EMAILDOMAIN%= |
+
+** =exchange=
+
+| Field   | Type   | Description               |
+|---------+--------+---------------------------|
+| =ews_url= | string | Exchange Web Services URL |
+| =oab_url= | string | Offline Address Book URL  |
+| =oof_url= | string | Out of Office URL         |
+
+** =activesync=
+
+| Field | Type   | Description                                                                     |
+|-------+--------+---------------------------------------------------------------------------------|
+| =url=   | string | ActiveSync endpoint (e.g. =https://mail.example.com/Microsoft-Server-ActiveSync=) |
+
+** =vpn=
+
+| Field       | Type   | Description                                                              |
+|-------------+--------+--------------------------------------------------------------------------|
+| =type=        | string | VPN type: ="IKEv2"=, ="L2TP"=, ="PPTP"=, ="IPSec"=, etc.                         |
+| =host=        | string | VPN server hostname                                                      |
+| =remote_id=   | string | Remote identifier (e.g. for IKEv2)                                       |
+| =local_id=    | string | Local identifier (e.g. for IKEv2)                                        |
+| =auth_method= | string | Authentication method: ="None"=, ="Certificate"=, ="SharedSecret"=, ="Password"= |
+
+** =mdm=
+
+| Field      | Type   | Description               |
+|------------+--------+---------------------------|
+| =server_url= | string | MDM enrollment server URL |
+
+* Placeholders
+
+The following placeholders are expanded in URLs where noted above:
+
+| Placeholder      | Expands to                                |
+|------------------+-------------------------------------------|
+| =%EMAILADDRESS%=   | Full email address, e.g. =user@example.com= |
+| =%EMAILLOCALPART%= | Local part, e.g. =user=                     |
+| =%EMAILDOMAIN%=    | Domain part, e.g. =example.com=             |
+
+* Apple Configuration Profile (=/profile.mobileconfig=)
+
+When =?email=user@example.com= is provided, the generated =.mobileconfig= includes payloads for all configured services:
+
+- *Email* (=com.apple.mail.managed=) — IMAP incoming, SMTP outgoing
+- *CalDAV* (=com.apple.caldav.account=)
+- *CardDAV* (=com.apple.carddav.account=)
+- *VPN* (=com.apple.vpn.managed=)
+- *MDM* (=com.apple.mdm=)
+
+Payload UUIDs are deterministically derived from the domain and payload type so they remain stable across restarts.
+
+* Well-known Redirects
+
+The server responds to RFC 6764 =.well-known= requests with HTTP redirects to the configured DAV principal URLs:
+
+| Request                                         | Redirect                               |
+|-------------------------------------------------+----------------------------------------|
+| =GET /.well-known/caldav?email=user@example.com=  | 307 = to expanded CalDAV principal URL |
+| =GET /.well-known/carddav?email=user@example.com= | 307 = to expanded CalDAV principal URL |

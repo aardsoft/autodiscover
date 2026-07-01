@@ -1,0 +1,51 @@
+{
+  "info": {
+    "name": "Example Corporation",
+    "url": "https://support.example.com",
+    "domain": "example.com"
+  },
+  "server": {
+    "imap": {
+      "host": "mail.example.com",
+      "port": 993,
+      "socket": "SSL"
+    },
+    "smtp": {
+      "host": "mail.example.com",
+      "port": 465,
+      "socket": "SSL"
+    },
+    "domain_required": true
+  },
+  "ttl": 168,
+  "caldav": {
+    "host": "dav.example.com",
+    "port": 443,
+    "ssl": true,
+    "principal_url": "/dav/calendars/user/%EMAILADDRESS%"
+  },
+  "carddav": {
+    "host": "dav.example.com",
+    "port": 443,
+    "ssl": true,
+    "principal_url": "/dav/addressbooks/user/%EMAILADDRESS%"
+  },
+  "exchange": {
+    "ews_url": "https://mail.example.com/ews/exchange.asmx",
+    "oab_url": "https://mail.example.com/oab/oab.xml",
+    "oof_url": "https://mail.example.com/ews/exchange.asmx"
+  },
+  "activesync": {
+    "url": "https://mail.example.com/Microsoft-Server-ActiveSync"
+  },
+  "vpn": {
+    "type": "IKEv2",
+    "host": "vpn.example.com",
+    "remote_id": "vpn.example.com",
+    "local_id": "client",
+    "auth_method": "Certificate"
+  },
+  "mdm": {
+    "server_url": "https://mdm.example.com"
+  }
+}
