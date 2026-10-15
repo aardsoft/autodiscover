@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"log"
@@ -14,6 +15,16 @@ func writeXML(w http.ResponseWriter, status int, v any) {
 	enc.Indent("", "  ")
 	if err := enc.Encode(v); err != nil {
 		log.Printf("XML encode error: %v", err)
+	}
+}
+
+func writeJSON(w http.ResponseWriter, status int, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(v); err != nil {
+		log.Printf("JSON encode error: %v", err)
 	}
 }
 

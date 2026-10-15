@@ -51,6 +51,10 @@ func testSettings() *config.Settings {
 	s.MDM = &config.MDMSettings{
 		ServerURL: "https://mdm.test.example.com",
 	}
+	s.Matrix = &config.MatrixSettings{
+		Server:     "matrix.test.example.com",
+		Homeserver: "https://matrix.test.example.com",
+	}
 	return s
 }
 
@@ -235,6 +239,62 @@ func TestWellKnownCardDAV(t *testing.T) {
 	expected := "https://dav.test.example.com/dav/addressbooks/user/user@test.example.com"
 	if loc != expected {
 		t.Errorf("expected redirect to %s, got %s", expected, loc)
+	}
+}
+
+func TestWellKnownMatrixServer(t *testing.T) {
+	s := testSettings()
+	req := httptest.NewRequest(http.MethodGet, "/.well-known/matrix/server", nil)
+	w := httptest.NewRecorder()
+
+	HandleWellKnownMatrixServer(s)(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	if w.Header().Get("Content-Type") != "application/json" {
+		t.Errorf("unexpected content type: %s", w.Header().Get("Content-Type"))
+	}
+	if !strings.Contains(w.Body.String(), `"m.server": "matrix.test.example.com"`) {
+		t.Error("response missing m.server delegation")
+	}
+}
+
+func TestWellKnownMatrixClient(t *testing.T) {
+	s := testSettings()
+	req := httptest.NewRequest(http.MethodGet, "/.well-known/matrix/client", nil)
+	w := httptest.NewRecorder()
+
+	HandleWellKnownMatrixClient(s)(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	body := w.Body.String()
+	if !strings.Contains(body, `"base_url": "https://matrix.test.example.com"`) {
+		t.Error("response missing homeserver base_url")
+	}
+	if !strings.Contains(body, `"m.identity_server"`) {
+		t.Error("response missing identity_server")
+	}
+}
+
+func TestWellKnownMatrixUnconfigured(t *testing.T) {
+	s := testSettings()
+	s.Matrix = nil
+
+	req := httptest.NewRequest(http.MethodGet, "/.well-known/matrix/server", nil)
+	w := httptest.NewRecorder()
+	HandleWellKnownMatrixServer(s)(w, req)
+	if w.Code != http.StatusNotFound {
+		t.Errorf("expected 404, got %d", w.Code)
+	}
+
+	req = httptest.NewRequest(http.MethodGet, "/.well-known/matrix/client", nil)
+	w = httptest.NewRecorder()
+	HandleWellKnownMatrixClient(s)(w, req)
+	if w.Code != http.StatusNotFound {
+		t.Errorf("expected 404, got %d", w.Code)
 	}
 }
 

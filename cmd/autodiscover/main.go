@@ -29,6 +29,8 @@ func main() {
 	mux.HandleFunc("GET /profile.mobileconfig", handlers.HandleAppleProfile(settings))
 	mux.HandleFunc("GET /.well-known/caldav", handlers.HandleWellKnownCalDAV(settings))
 	mux.HandleFunc("GET /.well-known/carddav", handlers.HandleWellKnownCardDAV(settings))
+	mux.HandleFunc("GET /.well-known/matrix/server", handlers.HandleWellKnownMatrixServer(settings))
+	mux.HandleFunc("GET /.well-known/matrix/client", handlers.HandleWellKnownMatrixClient(settings))
 
 	log.Printf("Autodiscover server v%s listening on %s", version, *addr)
 	if err := http.ListenAndServe(*addr, mux); err != nil {

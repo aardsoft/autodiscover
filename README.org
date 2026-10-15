@@ -12,6 +12,8 @@ A single Go binary that replaces an nginx + PHP stack for serving email autodisc
 | Apple iOS / macOS                    | =GET /profile.mobileconfig=           | Property List (=.plist=) |
 | CalDAV (RFC 6764)                    | =GET /.well-known/caldav=             | HTTP redirect          |
 | CardDAV (RFC 6764)                   | =GET /.well-known/carddav=            | HTTP redirect          |
+| Matrix federation delegation         | =GET /.well-known/matrix/server=      | JSON ([[https://spec.matrix.org/latest/server-server-api/#server-discovery][spec]]) |
+| Matrix homeserver discovery          | =GET /.well-known/matrix/client=      | JSON ([[https://spec.matrix.org/latest/client-server-api/#well-known-uri][spec]]) |
 
 * Building
 
@@ -42,6 +44,7 @@ See =example-settings.json= for a complete example.
 | =info=       | object  | *yes*      | General provider information                             |
 | =server=     | object  | *yes*      | IMAP and SMTP server settings                            |
 | =ttl=        | integer | no       | Time-to-live in hours for cached settings. Defaults to =1= |
+| =matrix=     | object  | no       | Matrix well-known delegation targets                     |
 | =caldav=     | object  | no       | CalDAV server configuration                              |
 | =carddav=    | object  | no       | CardDAV server configuration                             |
 | =exchange=   | object  | no       | Microsoft Exchange Web Services URLs                     |
@@ -79,6 +82,17 @@ See =example-settings.json= for a complete example.
 | =port=          | integer | TCP port number                                                                                     |
 | =ssl=           | boolean | Whether to use HTTPS                                                                                |
 | =principal_url= | string  | User-specific principal path. Supports placeholders =%EMAILADDRESS%=, =%EMAILLOCALPART%=, =%EMAILDOMAIN%= |
+
+** =matrix=
+
+Optional. When absent, both matrix endpoints return 404 with a plain-text
+explanation (which triggers SRV-based federation fallback).
+
+| Field             | Type   | Description                                                                            |
+|-------------------+--------+----------------------------------------------------------------------------------------|
+| =server=          | string | Value for =m.server= — the target homeserver hostname (or =host:port=) federation uses |
+| =homeserver=      | string | Value for =m.homeserver.base_url=, e.g. =https://matrix.example.com=                    |
+| =identity_server= | string | Optional override for =m.identity_server.base_url=, defaults to =homeserver=           |
 
 ** =exchange=
 
@@ -140,3 +154,5 @@ The server responds to RFC 6764 =.well-known= requests with HTTP redirects to th
 |-------------------------------------------------+----------------------------------------|
 | =GET /.well-known/caldav?email=user@example.com=  | 307 = to expanded CalDAV principal URL |
 | =GET /.well-known/carddav?email=user@example.com= | 307 = to expanded CalDAV principal URL |
+| =GET /.well-known/matrix/server=                  | 200 = JSON with =m.server=             |
+| =GET /.well-known/matrix/client=                  | 200 = JSON with homeserver/identity URLs |

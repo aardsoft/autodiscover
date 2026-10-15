@@ -27,12 +27,20 @@ type Settings struct {
 		DomainRequired bool `json:"domain_required"`
 	} `json:"server"`
 	TTL        int                 `json:"ttl"`
+	Matrix     *MatrixSettings     `json:"matrix,omitempty"`
 	CalDAV     *CalDAVSettings     `json:"caldav,omitempty"`
 	CardDAV    *CardDAVSettings    `json:"carddav,omitempty"`
 	Exchange   *ExchangeSettings   `json:"exchange,omitempty"`
 	ActiveSync *ActiveSyncSettings `json:"activesync,omitempty"`
 	VPN        *VPNSettings        `json:"vpn,omitempty"`
 	MDM        *MDMSettings        `json:"mdm,omitempty"`
+}
+
+// MatrixSettings holds the Matrix well-known delegation targets.
+type MatrixSettings struct {
+	Server         string `json:"server,omitempty"`
+	Homeserver     string `json:"homeserver,omitempty"`
+	IdentityServer string `json:"identity_server,omitempty"`
 }
 
 // CalDAVSettings describes a CalDAV server endpoint.

@@ -18,6 +18,11 @@
     "domain_required": true
   },
   "ttl": 168,
+  "matrix": {
+    "server": "matrix.example.com",
+    "homeserver": "https://matrix.example.com",
+    "identity_server": "https://matrix.example.com"
+  },
   "caldav": {
     "host": "dav.example.com",
     "port": 443,
